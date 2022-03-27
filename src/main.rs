@@ -1,4 +1,9 @@
-use eframe::{run_native, epi::App, egui::{self, Ui, Separator, RichText, TextEdit, ScrollArea}, NativeOptions, epaint::{Vec2, Color32}};
+use eframe::{
+    egui::{self, RichText, ScrollArea, Separator, TextEdit, Ui},
+    epaint::{Color32, Vec2},
+    epi::App,
+    run_native, NativeOptions,
+};
 const PADDING: f32 = 5.0;
 
 struct Seract {
@@ -8,24 +13,19 @@ struct Seract {
     // tess: leptess::LepTess
 }
 
-
 fn validate_file(file: String) -> bool {
     let path = std::path::Path::new(&file);
-    if path.exists() {
-        if path.is_file() {
-            let ext = path.extension().unwrap().to_str().unwrap();
-            if ext == "png" || ext == "jpg" || ext == "jpeg" || ext == "bmp" {
-                return true;
-            }
+    if path.exists() && path.is_file() {
+        let ext = path.extension().unwrap().to_str().unwrap();
+        if ext == "png" || ext == "jpg" || ext == "jpeg" || ext == "bmp" {
+            return true;
         }
     }
     false
 }
 
-
 impl App for Seract {
     fn update(&mut self, ctx: &eframe::egui::Context, _frame: &eframe::epi::Frame) {
-        
         egui::CentralPanel::default().show(ctx, |ui| {
             self.ui_heading(ui);
             self.ui_get_filename(ui);
@@ -33,7 +33,6 @@ impl App for Seract {
                 self.ui_get_content(ui);
             }
         });
-        
     }
 
     fn name(&self) -> &str {
@@ -54,7 +53,6 @@ impl Seract {
             ui.add_space(PADDING);
             ui.heading("Image2Text");
             // ui.add_space(PADDING);
-
         });
         let sep = Separator::default().spacing(20.);
         ui.add(sep);
@@ -64,15 +62,13 @@ impl Seract {
 
         ui.vertical_centered(|ui| {
             ui.add_space(PADDING);
-            let btn;
-            if self.filename.is_some() {
-                btn = ui.button("Change Image");
+            let btn = if self.filename.is_some() {
+                ui.button("Change Image")
             } else {
-                btn = ui.button("Open Image");
-
-            }
+                ui.button("Open Image")
+            };
             ui.add_space(PADDING);
-            
+
             if btn.clicked() {
                 let file_path = tinyfiledialogs::open_file_dialog("Open Image", "~", None);
                 if let Some(file) = file_path {
@@ -88,19 +84,17 @@ impl Seract {
                         self.error = Some("invalid file!".to_string());
                         self.filename = None;
                         self.content = None;
-
                     }
                 } else {
                     self.filename = None;
                     self.content = None;
-
                 }
             }
 
             if let Some(file) = self.filename.clone() {
-                ui.label(RichText::new(format!("{}", file)).color(Color32::GREEN));
+                ui.label(RichText::new(file).color(Color32::GREEN));
             } else if let Some(error) = self.error.clone() {
-                ui.label(RichText::new(format!("{}", error)).color(Color32::RED));
+                ui.label(RichText::new(error).color(Color32::RED));
             }
 
             ui.add_space(PADDING);
@@ -114,7 +108,11 @@ impl Seract {
         let mut value = self.content.clone().unwrap();
         // ui.label(value);
         ScrollArea::vertical().show(ui, |ui| {
-            ui.add(TextEdit::multiline(&mut value).desired_width(f32::INFINITY).code_editor());
+            ui.add(
+                TextEdit::multiline(&mut value)
+                    .desired_width(f32::INFINITY)
+                    .code_editor(),
+            );
         });
     }
 }
@@ -126,7 +124,8 @@ fn main() {
         let filename = filename[1].clone();
         if validate_file(filename.clone()) {
             let mut tess = leptess::LepTess::new(None, "eng").unwrap();
-            tess.set_variable(leptess::Variable::UserDefinedDpi, "70").unwrap();
+            tess.set_variable(leptess::Variable::UserDefinedDpi, "70")
+                .unwrap();
             tess.set_image(filename).unwrap();
             let text = tess.get_utf8_text().unwrap();
             let mut cb = arboard::Clipboard::new().unwrap();
@@ -134,12 +133,12 @@ fn main() {
             println!("{}", text);
             return;
         }
-
-
     }
 
     let app = Seract::new();
-    let mut win_options = NativeOptions::default();
-    win_options.initial_window_size = Some(Vec2::new(480., 640.));
+    let win_options = NativeOptions {
+        initial_window_size: Some(Vec2::new(480., 640.)),
+        ..NativeOptions::default()
+    };
     run_native(Box::new(app), win_options);
 }

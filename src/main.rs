@@ -26,6 +26,7 @@ fn validate_file(file: String) -> bool {
 
 impl App for Seract {
     fn update(&mut self, ctx: &eframe::egui::Context, _frame: &eframe::epi::Frame) {
+        self.ctx_get_filename(ctx);
         egui::CentralPanel::default().show(ctx, |ui| {
             self.ui_heading(ui);
             self.ui_get_filename(ui);
@@ -57,39 +58,53 @@ impl Seract {
         let sep = Separator::default().spacing(20.);
         ui.add(sep);
     }
+
+    fn ctx_get_filename(&mut self, _ctx: &eframe::egui::Context) {
+        // let mut cb = arboard::Clipboard::new().unwrap();
+        // dbg!(cb.get_text().unwrap());
+    }
+
     fn ui_get_filename(&mut self, ui: &mut Ui) {
         ui.add_space(PADDING);
 
         ui.vertical_centered(|ui| {
             ui.add_space(PADDING);
-            let btn = if self.filename.is_some() {
-                ui.button("Change Image")
+            if self.filename.is_some() {
+                ui.heading("Change Image");
             } else {
-                ui.button("Open Image")
-            };
-            ui.add_space(PADDING);
+                ui.heading("Add Image");
+            }
+            ui.label("from");
 
-            if btn.clicked() {
-                let file_path = tinyfiledialogs::open_file_dialog("Open Image", "~", None);
-                if let Some(file) = file_path {
-                    if validate_file(file.clone()) {
-                        self.filename = Some(file);
-                        self.error = None;
-                        let mut tess = leptess::LepTess::new(None, "eng").unwrap();
-                        tess.set_image(self.filename.clone().unwrap()).unwrap();
-                        self.content = Some(tess.get_utf8_text().unwrap());
-                        let mut cb = arboard::Clipboard::new().unwrap();
-                        cb.set_text(self.content.clone().unwrap()).unwrap();
+            ui.horizontal(|ui| {
+                ui.add_space(170.);
+                let cpd = ui.button("Clipboard");
+                if cpd.clicked() {
+                    match arboard::Clipboard::new().unwrap().get_text() {
+                        Ok(file) => {
+                            self.set_filename(file);
+                        }
+                        _ => {
+                            self.error = Some("invalid data!".to_owned());
+                            // self.filename = None;
+                            // self.content = None;
+                        }
+                    }
+                }
+
+                let dialog = ui.button("Explorer");
+                if dialog.clicked() {
+                    let file_path = tinyfiledialogs::open_file_dialog("Open Image", "~", None);
+                    if let Some(file) = file_path {
+                        self.set_filename(file);
                     } else {
-                        self.error = Some("invalid file!".to_string());
                         self.filename = None;
                         self.content = None;
                     }
-                } else {
-                    self.filename = None;
-                    self.content = None;
                 }
-            }
+            });
+
+            ui.add_space(PADDING);
 
             if let Some(file) = self.filename.clone() {
                 ui.label(RichText::new(file).color(Color32::GREEN));
@@ -101,6 +116,22 @@ impl Seract {
             let sep = Separator::default().spacing(20.);
             ui.add(sep);
         });
+    }
+
+    fn set_filename(&mut self, file: String) {
+        if validate_file(file.clone()) {
+            self.filename = Some(file);
+            self.error = None;
+            let mut tess = leptess::LepTess::new(None, "eng").unwrap();
+            tess.set_image(self.filename.clone().unwrap()).unwrap();
+            self.content = Some(tess.get_utf8_text().unwrap());
+            let mut cb = arboard::Clipboard::new().unwrap();
+            cb.set_text(self.content.clone().unwrap()).unwrap();
+        } else {
+            self.error = Some("invalid file!".to_string());
+            self.filename = None;
+            self.content = None;
+        }
     }
 
     fn ui_get_content(&mut self, ui: &mut Ui) {
@@ -138,6 +169,7 @@ fn main() {
     let app = Seract::new();
     let win_options = NativeOptions {
         initial_window_size: Some(Vec2::new(480., 640.)),
+        resizable: false,
         ..NativeOptions::default()
     };
     run_native(Box::new(app), win_options);

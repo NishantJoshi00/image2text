@@ -1,6 +1,6 @@
 [package]
 name = "img2tex"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Nishant Joshi <joshinishant@duck.com>"]
 description = "A CLI and/or GUI application for extracting text from images"

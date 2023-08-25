@@ -143,6 +143,8 @@ impl Seract {
     }
 }
 
+type AppFactory = Box<dyn FnOnce(&CreationContext) -> Box<dyn App>>;
+
 fn main() {
     let args = std::env::args();
     if args.len() != 1 {
@@ -161,8 +163,7 @@ fn main() {
         }
     }
 
-    let app_factory: Box<dyn FnOnce(&CreationContext) -> Box<dyn App>> =
-        Box::new(|_ctx| Box::new(Seract::new()));
+    let app_factory: AppFactory = Box::new(|_ctx| Box::new(Seract::new()));
     let win_options = NativeOptions {
         initial_window_size: Some(Vec2::new(480., 640.)),
         resizable: false,

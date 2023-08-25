@@ -1,8 +1,7 @@
 use eframe::{
-    egui::{self, RichText, ScrollArea, Separator, TextEdit, Ui},
+    egui::{self, RichText, ScrollArea, Separator, TextBuffer, TextEdit, Ui},
     epaint::{Color32, Vec2},
-    epi::App,
-    run_native, NativeOptions,
+    run_native, App, CreationContext, NativeOptions,
 };
 const PADDING: f32 = 5.0;
 
@@ -25,7 +24,7 @@ fn validate_file(file: String) -> bool {
 }
 
 impl App for Seract {
-    fn update(&mut self, ctx: &eframe::egui::Context, _frame: &eframe::epi::Frame) {
+    fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
         self.ctx_get_filename(ctx);
         egui::CentralPanel::default().show(ctx, |ui| {
             self.ui_heading(ui);
@@ -34,10 +33,6 @@ impl App for Seract {
                 self.ui_get_content(ui);
             }
         });
-    }
-
-    fn name(&self) -> &str {
-        "Headlines"
     }
 }
 
@@ -166,11 +161,12 @@ fn main() {
         }
     }
 
-    let app = Seract::new();
+    let app_factory: Box<dyn FnOnce(&CreationContext) -> Box<dyn App>> =
+        Box::new(|_ctx| Box::new(Seract::new()));
     let win_options = NativeOptions {
         initial_window_size: Some(Vec2::new(480., 640.)),
         resizable: false,
         ..NativeOptions::default()
     };
-    run_native(Box::new(app), win_options);
+    let _ = run_native("Headlines".as_str(), win_options, app_factory);
 }
